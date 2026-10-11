@@ -16,6 +16,7 @@ import android.os.VibratorManager
 import android.util.Log
 import com.mxcfe.key.R
 import com.mxcfe.key.action.ActionDispatcher
+import com.mxcfe.key.action.KeyGesture
 import com.mxcfe.key.detect.AiKeyDetector
 import com.mxcfe.key.detect.HandlerDelayQueue
 import com.mxcfe.key.keepalive.Watchdog
@@ -52,7 +53,7 @@ class ActionKeyService : Service() {
             detector = AiKeyDetector(
                 clock = { SystemClock.elapsedRealtime() },
                 delays = HandlerDelayQueue(Handler(Looper.getMainLooper())),
-                onShortPress = ::onShortPress,
+                onGesture = ::onGesture,
             )
             reader = Thread(::listen, "ai-key-logcat").also { it.start() }
         }
@@ -75,8 +76,8 @@ class ActionKeyService : Service() {
         AccessibilityEnabler.enableIfNeeded(this)
     }
 
-    private fun onShortPress(reason: String) {
-        Log.i(TAG, "detected short :: $reason")
+    private fun onGesture(gesture: KeyGesture, reason: String) {
+        Log.i(TAG, "detected ${gesture.id} :: $reason")
         if (Prefs(this).vibrate()) {
             try {
                 val vibrator = getSystemService(VibratorManager::class.java).defaultVibrator
@@ -85,7 +86,7 @@ class ActionKeyService : Service() {
                 Log.w(TAG, "vibrate failed", error)
             }
         }
-        ActionDispatcher.dispatch(this)
+        ActionDispatcher.dispatch(this, gesture)
     }
 
     private fun listen() {

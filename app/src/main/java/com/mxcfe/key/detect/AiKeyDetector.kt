@@ -1,25 +1,29 @@
 package com.mxcfe.key.detect
 
+import com.mxcfe.key.action.KeyGesture
 import java.util.ArrayDeque
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * AI 键短按检测。日志行的分类、120ms 汇总节流、80ms 原始点击、
- * 聚合延时，以及两条回调互相取消，与当前软件一致。
+ * AI 键手势检测，只回调长按和双击。单击会被吃掉，用来把双击和长按分开。
+ * 汇总行 120ms 内只计一次，单击汇总至少等到 600ms。原始点击等双击窗口结束再判定，
+ * 按住达到长按时间则视为长按。系统日志里的 long / double 会立刻生效，并取消尚未发出的单击。
  */
 class AiKeyDetector(
     private val clock: () -> Long,
     private val delays: DelayQueue,
-    private val onShortPress: (String) -> Unit,
+    private val onGesture: (KeyGesture, String) -> Unit,
 ) {
     private val rawToken = Any()
     private val aggToken = Any()
+    private val longToken = Any()
     private val clickCount = AtomicInteger(0)
     private val intervals = ArrayDeque<Long>()
 
     private var downAt = -1L
     private var rawPending = false
+    private var rawClicks = 0
     private var lastSummaryGate = -1L
     private var lastSummaryAt = -1L
     private var realClick = false
@@ -27,17 +31,24 @@ class AiKeyDetector(
     private var longSeen = false
     private var lastDownEvent = Long.MIN_VALUE
     private var lastUpEvent = Long.MIN_VALUE
+    private var blockSummariesUntil = 0L
+    private var ignoreKeyedUntil = 0L
+    private var lastEmitAt = Long.MIN_VALUE
+    private var lastEmit: KeyGesture? = null
 
     fun onLine(raw: String) {
         if (raw.contains("ActionKeyLogcat")) return
         val lower = raw.lowercase(Locale.ROOT)
         if (containsAny(lower, MIUI)) return
         if (!containsAny(lower, KEYWORDS)) return
+        if (isLong(lower) || isDouble(lower) || isTriple(lower)) {
+            onGestureLine(lower)
+            return
+        }
         if (isSummary(lower)) {
             onSummary()
             return
         }
-        if (isGesture(lower)) return
         if (!containsAny(lower, KEY_NAMES)) return
 
         val realKey = lower.contains("keycode_action_button") &&
@@ -52,7 +63,9 @@ class AiKeyDetector(
     fun reset() {
         delays.cancel(rawToken)
         delays.cancel(aggToken)
+        delays.cancel(longToken)
         rawPending = false
+        rawClicks = 0
         downAt = -1L
         clickCount.set(0)
         lastSummaryGate = -1L
@@ -63,6 +76,10 @@ class AiKeyDetector(
         lastSummaryAt = -1L
         intervals.clear()
         longSeen = false
+        blockSummariesUntil = 0L
+        ignoreKeyedUntil = 0L
+        lastEmitAt = Long.MIN_VALUE
+        lastEmit = null
     }
 
     private fun onKeyed(isDown: Boolean, realKey: Boolean, eventTime: Long?) {
@@ -78,32 +95,61 @@ class AiKeyDetector(
         if (realKey && !suppress) {
             suppress = true
             delays.cancel(aggToken)
+            delays.cancel(rawToken)
+            delays.cancel(longToken)
             clickCount.set(0)
             rawPending = false
-            delays.cancel(rawToken)
+            rawClicks = 0
             downAt = -1L
         }
         if (realKey && suppress) return
+        if (clock() < ignoreKeyedUntil) {
+            delays.cancel(longToken)
+            downAt = -1L
+            return
+        }
         if (isDown) {
+            delays.cancel(rawToken)
             downAt = clock()
             longSeen = false
             realClick = false
+            delays.post(longToken, LONG_PRESS_MS, ::onHold)
+            return
+        }
+        delays.cancel(longToken)
+        if (longSeen) {
+            longSeen = false
+            downAt = -1L
             return
         }
         if (downAt < 0L) return
+        val held = clock() - downAt
         downAt = -1L
-        if (longSeen) {
-            longSeen = false
+        if (held >= LONG_PRESS_MS) {
+            rawPending = false
+            rawClicks = 0
+            clickCount.set(0)
+            delays.cancel(rawToken)
+            delays.cancel(aggToken)
+            emit(KeyGesture.LONG, "hold")
             return
         }
-        delays.cancel(rawToken)
+        rawClicks++
         rawPending = true
-        delays.post(rawToken, 80L, ::onRaw)
+        delays.post(rawToken, DOUBLE_TAP_MS, ::onRaw)
+    }
+
+    private fun onHold() {
+        if (downAt < 0L || longSeen) return
+        longSeen = true
+        consumePending()
+        emit(KeyGesture.LONG, "hold")
     }
 
     private fun onSummary() {
         if (suppress) return
         val now = clock()
+        if (now < blockSummariesUntil) return
         if (lastSummaryGate >= 0L && now - lastSummaryGate < 120L) return
         lastSummaryGate = now
         if (downAt >= 0L) return
@@ -136,30 +182,70 @@ class AiKeyDetector(
         clickCount.set(0)
         delays.cancel(rawToken)
         rawPending = false
-        onShortPress("aggregated SHORT x$count")
+        rawClicks = 0
+        if (count == 2) emit(KeyGesture.DOUBLE, "aggregated DOUBLE x$count")
     }
 
     private fun onRaw() {
         if (!rawPending) return
+        val count = rawClicks
         rawPending = false
+        rawClicks = 0
         delays.cancel(aggToken)
         clickCount.set(0)
-        onShortPress("raw click channel (no gesture channel)")
+        if (count == 2) emit(KeyGesture.DOUBLE, "raw double click")
     }
 
-    private fun isGesture(lower: String): Boolean {
-        val gesture = isLong(lower) || isDouble(lower) || isTriple(lower)
-        if (!gesture) return false
-        if (isUp(lower)) return true
-        if (isLong(lower)) {
-            longSeen = true
-            rawPending = false
-            delays.cancel(rawToken)
+    private fun onGestureLine(lower: String) {
+        if (isTriple(lower)) {
+            if (!isUp(lower)) consumePending()
+            return
         }
-        return true
+        if (isLong(lower)) {
+            if (isUp(lower)) {
+                if (!longSeen) {
+                    consumePending()
+                    emit(KeyGesture.LONG, "long press channel")
+                }
+                longSeen = false
+                return
+            }
+            if (longSeen) return
+            longSeen = true
+            consumePending()
+            emit(KeyGesture.LONG, "long press channel")
+            return
+        }
+        if (isUp(lower)) return
+        consumePending()
+        emit(KeyGesture.DOUBLE, "double click channel")
+    }
+
+    private fun consumePending() {
+        rawPending = false
+        rawClicks = 0
+        clickCount.set(0)
+        realClick = false
+        delays.cancel(rawToken)
+        delays.cancel(aggToken)
+        delays.cancel(longToken)
+        val now = clock()
+        blockSummariesUntil = now + 500L
+        ignoreKeyedUntil = now + 400L
+    }
+
+    private fun emit(gesture: KeyGesture, reason: String) {
+        val now = clock()
+        if (gesture == lastEmit && now - lastEmitAt < 400L) return
+        lastEmit = gesture
+        lastEmitAt = now
+        onGesture(gesture, reason)
     }
 
     companion object {
+        const val LONG_PRESS_MS = 400L
+        const val DOUBLE_TAP_MS = 300L
+
         private val MIUI = listOf("miuiinputkeyeventlog", "miaikeyrule")
         private val KEYWORDS = listOf(
             "keycode_action_button",

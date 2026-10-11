@@ -15,11 +15,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.AdsClick
 import androidx.compose.material.icons.outlined.BatteryAlert
 import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material.icons.outlined.PowerSettingsNew
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.VpnKey
@@ -48,6 +49,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mxcfe.key.R
 import com.mxcfe.key.action.ActionId
+import com.mxcfe.key.action.KeyGesture
 import com.mxcfe.key.prefs.Prefs
 import com.mxcfe.key.privilege.ShizukuAccess
 import com.mxcfe.key.service.ActionKeyService
@@ -63,8 +65,11 @@ class MainActivity : ComponentActivity() {
             SideKeyTheme(prefs.themeMode()) {
                 MainScreen(
                     prefs = prefs,
-                    onPickAction = {
-                        startActivity(Intent(this, ActionPickerActivity::class.java))
+                    onPickAction = { gesture ->
+                        startActivity(
+                            Intent(this, ActionPickerActivity::class.java)
+                                .putExtra(ActionPickerActivity.EXTRA_GESTURE, gesture.id),
+                        )
                     },
                     onRequestShizuku = { requestShizuku() },
                     onRequestBattery = { requestBattery() },
@@ -116,7 +121,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainScreen(
     prefs: Prefs,
-    onPickAction: () -> Unit,
+    onPickAction: (KeyGesture) -> Unit,
     onRequestShizuku: () -> Unit,
     onRequestBattery: () -> Unit,
     onHideRecents: (Boolean) -> Unit,
@@ -158,7 +163,8 @@ private fun MainScreen(
         context.getSystemService(PowerManager::class.java)
             .isIgnoringBatteryOptimizations(context.packageName)
     }
-    val subtitle = remember(tick) { shortSubtitle(context, prefs) }
+    val longSubtitle = remember(tick) { actionSubtitle(context, prefs, KeyGesture.LONG) }
+    val doubleSubtitle = remember(tick) { actionSubtitle(context, prefs, KeyGesture.DOUBLE) }
     val monitor by ActionKeyService.state.collectAsStateWithLifecycle()
 
     Scaffold(
@@ -194,7 +200,8 @@ private fun MainScreen(
                 shizuku = shizuku,
                 shizukuAlive = shizukuAlive,
                 battery = battery,
-                subtitle = subtitle,
+                longSubtitle = longSubtitle,
+                doubleSubtitle = doubleSubtitle,
                 monitor = monitorText(context, monitor, enabled),
                 monitorState = monitor,
                 onEnabled = { on ->
@@ -259,12 +266,13 @@ private fun ActionKeyPage(
     shizuku: Boolean,
     shizukuAlive: Boolean,
     battery: Boolean,
-    subtitle: String,
+    longSubtitle: String,
+    doubleSubtitle: String,
     monitor: String,
     monitorState: ActionKeyService.MonitorState,
     onEnabled: (Boolean) -> Unit,
     onVibrate: (Boolean) -> Unit,
-    onPickAction: () -> Unit,
+    onPickAction: (KeyGesture) -> Unit,
     onRequestShizuku: () -> Unit,
     onRequestBattery: () -> Unit,
 ) {
@@ -291,10 +299,18 @@ private fun ActionKeyPage(
         }
         Section(title = stringResource(R.string.ak_hw_single)) {
             PreferenceRow(
-                title = stringResource(R.string.ak_ai_short),
-                subtitle = subtitle,
-                icon = Icons.Outlined.TouchApp,
-                onClick = onPickAction,
+                title = stringResource(R.string.ak_ai_long),
+                subtitle = longSubtitle,
+                icon = Icons.Outlined.Timer,
+                onClick = { onPickAction(KeyGesture.LONG) },
+                showChevron = true,
+            )
+            RowDivider(start = IconDividerInset)
+            PreferenceRow(
+                title = stringResource(R.string.ak_ai_double),
+                subtitle = doubleSubtitle,
+                icon = Icons.Outlined.AdsClick,
+                onClick = { onPickAction(KeyGesture.DOUBLE) },
                 showChevron = true,
             )
         }
@@ -430,10 +446,14 @@ private fun monitorColor(state: ActionKeyService.MonitorState, enabled: Boolean)
     }
 }
 
-private fun shortSubtitle(context: android.content.Context, prefs: Prefs): String {
-    val action = ActionId.fromId(prefs.shortActionId())
+private fun actionSubtitle(
+    context: android.content.Context,
+    prefs: Prefs,
+    gesture: KeyGesture,
+): String {
+    val action = ActionId.fromId(prefs.actionId(gesture))
     if (action == ActionId.CUSTOM_APP) {
-        val label = prefs.customLabel().ifBlank { prefs.customPackage() }
+        val label = prefs.customLabel(gesture).ifBlank { prefs.customPackage(gesture) }
         if (label.isBlank()) return context.getString(R.string.ak_custom_app_none)
         return context.getString(R.string.ak_open_named, label)
     }

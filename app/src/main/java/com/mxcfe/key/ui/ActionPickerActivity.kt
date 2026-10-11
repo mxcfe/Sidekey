@@ -17,14 +17,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mxcfe.key.R
 import com.mxcfe.key.action.ActionId
+import com.mxcfe.key.action.KeyGesture
 import com.mxcfe.key.prefs.Prefs
 
 class ActionPickerActivity : ComponentActivity() {
+    private val gesture: KeyGesture by lazy {
+        KeyGesture.fromId(intent.getStringExtra(EXTRA_GESTURE))
+    }
+
     private val pickApp = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode != RESULT_OK) return@registerForActivityResult
         val pkg = result.data?.getStringExtra(AppPickerActivity.EXTRA_PKG) ?: return@registerForActivityResult
         val label = result.data?.getStringExtra(AppPickerActivity.EXTRA_LABEL) ?: pkg
-        Prefs(this).setCustomApp(pkg, label)
+        Prefs(this).setCustomApp(gesture, pkg, label)
         finish()
     }
 
@@ -33,16 +38,18 @@ class ActionPickerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         applyWindowBackground(this)
         val prefs = Prefs(this)
+        val current = gesture
         setContent {
             SideKeyTheme(prefs.themeMode()) {
                 ActionList(
-                    selected = prefs.shortActionId(),
+                    title = stringResource(pickerTitle(current)),
+                    selected = prefs.actionId(current),
                     onBack = { finish() },
                     onPick = { action ->
                         if (action == ActionId.CUSTOM_APP) {
                             pickApp.launch(Intent(this, AppPickerActivity::class.java))
                         } else {
-                            prefs.setShortAction(action.id)
+                            prefs.setAction(current, action.id)
                             finish()
                         }
                     },
@@ -50,10 +57,20 @@ class ActionPickerActivity : ComponentActivity() {
             }
         }
     }
+
+    companion object {
+        const val EXTRA_GESTURE = "gesture"
+
+        private fun pickerTitle(gesture: KeyGesture): Int = when (gesture) {
+            KeyGesture.LONG -> R.string.ak_pick_action_long
+            KeyGesture.DOUBLE -> R.string.ak_pick_action_double
+        }
+    }
 }
 
 @Composable
 private fun ActionList(
+    title: String,
     selected: String,
     onBack: () -> Unit,
     onPick: (ActionId) -> Unit,
@@ -63,7 +80,7 @@ private fun ActionList(
         stringResource(R.string.ak_cat_quick) to ActionId.entries.filter { !it.inAppGroup },
     )
     PickerScaffold(
-        title = stringResource(R.string.ak_pick_action),
+        title = title,
         onBack = onBack,
     ) { padding ->
         LazyColumn(

@@ -3,6 +3,7 @@ package com.mxcfe.key.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import com.mxcfe.key.action.ActionId
+import com.mxcfe.key.action.KeyGesture
 
 class Prefs(context: Context) {
     val raw: SharedPreferences =
@@ -20,39 +21,27 @@ class Prefs(context: Context) {
         raw.edit().putBoolean(KEY_VIBRATE, value).apply()
     }
 
-    fun shortActionId(): String {
-        val primary = raw.getString(KEY_SHORT, null)
-        if (!primary.isNullOrEmpty()) return primary
-        return raw.getString(KEY_LEGACY, ActionId.NONE.id) ?: ActionId.NONE.id
+    fun actionId(gesture: KeyGesture): String {
+        return raw.getString(actionKey(gesture), ActionId.NONE.id) ?: ActionId.NONE.id
     }
 
-    fun setShortAction(id: String) {
+    fun setAction(gesture: KeyGesture, id: String) {
+        raw.edit().putString(actionKey(gesture), id).apply()
+    }
+
+    fun customPackage(gesture: KeyGesture): String {
+        return raw.getString(pkgKey(gesture), "") ?: ""
+    }
+
+    fun customLabel(gesture: KeyGesture): String {
+        return raw.getString(labelKey(gesture), "") ?: ""
+    }
+
+    fun setCustomApp(gesture: KeyGesture, packageName: String, label: String) {
         raw.edit()
-            .putString(KEY_SHORT, id)
-            .putString(KEY_LEGACY, id)
-            .apply()
-    }
-
-    fun customPackage(): String {
-        val slot = raw.getString(KEY_PKG, null)
-        if (!slot.isNullOrEmpty()) return slot
-        return raw.getString(KEY_PKG_LEGACY, "") ?: ""
-    }
-
-    fun customLabel(): String {
-        val slot = raw.getString(KEY_LABEL, null)
-        if (!slot.isNullOrEmpty()) return slot
-        return raw.getString(KEY_LABEL_LEGACY, "") ?: ""
-    }
-
-    fun setCustomApp(packageName: String, label: String) {
-        raw.edit()
-            .putString(KEY_SHORT, ActionId.CUSTOM_APP.id)
-            .putString(KEY_LEGACY, ActionId.CUSTOM_APP.id)
-            .putString(KEY_PKG, packageName)
-            .putString(KEY_LABEL, label)
-            .putString(KEY_PKG_LEGACY, packageName)
-            .putString(KEY_LABEL_LEGACY, label)
+            .putString(actionKey(gesture), ActionId.CUSTOM_APP.id)
+            .putString(pkgKey(gesture), packageName)
+            .putString(labelKey(gesture), label)
             .apply()
     }
 
@@ -75,13 +64,28 @@ class Prefs(context: Context) {
     companion object {
         const val FILE = "smart_scan_prefs"
         const val KEY_ENABLED = "action_key_enabled"
-        const val KEY_SHORT = "action_key_ai_short_action_id"
-        const val KEY_LEGACY = "action_key_action_id"
+        const val KEY_LONG = "action_key_ai_long_action_id"
+        const val KEY_DOUBLE = "action_key_ai_double_action_id"
         const val KEY_VIBRATE = "action_key_vibrate"
-        const val KEY_PKG = "custom_app_pkg_single"
-        const val KEY_LABEL = "custom_app_label_single"
-        const val KEY_PKG_LEGACY = "custom_app_package"
-        const val KEY_LABEL_LEGACY = "custom_app_label"
+        const val KEY_PKG_LONG = "custom_app_pkg_long"
+        const val KEY_LABEL_LONG = "custom_app_label_long"
+        const val KEY_PKG_DOUBLE = "custom_app_pkg_double"
+        const val KEY_LABEL_DOUBLE = "custom_app_label_double"
+
+        private fun actionKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_LONG
+            KeyGesture.DOUBLE -> KEY_DOUBLE
+        }
+
+        private fun pkgKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_PKG_LONG
+            KeyGesture.DOUBLE -> KEY_PKG_DOUBLE
+        }
+
+        private fun labelKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_LABEL_LONG
+            KeyGesture.DOUBLE -> KEY_LABEL_DOUBLE
+        }
         const val KEY_THEME = "theme_mode"
         const val KEY_HIDE = "hide_from_recents"
         const val THEME_SYSTEM = "system"

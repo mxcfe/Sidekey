@@ -25,22 +25,22 @@ object ActionDispatcher {
     @Volatile
     private var torchOn = false
 
-    fun dispatch(context: Context) {
+    fun dispatch(context: Context, gesture: KeyGesture) {
         val app = context.applicationContext
         val prefs = Prefs(app)
-        val action = ActionId.fromId(prefs.shortActionId())
+        val action = ActionId.fromId(prefs.actionId(gesture))
         if (action == ActionId.NONE) return
         executor.execute {
-            Log.i(TAG, "dispatch ${action.id} slot=single")
-            run(app, action)
+            Log.i(TAG, "dispatch ${action.id} gesture=${gesture.id}")
+            run(app, action, gesture)
         }
     }
 
-    private fun run(context: Context, action: ActionId) {
+    private fun run(context: Context, action: ActionId, gesture: KeyGesture) {
         when (action) {
             ActionId.NONE -> Unit
             ActionId.OPEN_APP -> openMain(context)
-            ActionId.CUSTOM_APP -> openCustom(context)
+            ActionId.CUSTOM_APP -> openCustom(context, gesture)
             ActionId.FLASHLIGHT -> toggleFlashlight(context)
             ActionId.CAMERA -> start(context, Intent("android.media.action.STILL_IMAGE_CAMERA"))
             ActionId.SCREENSHOT -> screenshot(context)
@@ -62,8 +62,8 @@ object ActionDispatcher {
         start(context, intent)
     }
 
-    private fun openCustom(context: Context) {
-        val pkg = Prefs(context).customPackage()
+    private fun openCustom(context: Context, gesture: KeyGesture) {
+        val pkg = Prefs(context).customPackage(gesture)
         if (pkg.isBlank()) {
             toast(context, R.string.ak_custom_app_unset, long = false)
             openMain(context)
