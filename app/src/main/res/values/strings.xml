@@ -5,6 +5,7 @@
     <string name="nav_settings">设置</string>
     <string name="ak_enable_title">启用按键自定义</string>
     <string name="ak_enable_desc">通过 Shizuku 激活按键监听</string>
+    <string name="ak_section_key">按键</string>
     <string name="ak_hw_single">AI 按键</string>
     <string name="ak_ai_short">短按</string>
     <string name="ak_privilege_title">激活方式</string>
@@ -12,7 +13,12 @@
     <string name="ak_vibrate_title">触发时震动</string>
     <string name="ak_vibrate_desc">执行动作时短震一下</string>
     <string name="ak_pick_action">按下时执行</string>
+    <string name="ak_pick_app">选择应用</string>
     <string name="ak_custom_app_search">搜索应用</string>
+    <string name="ak_search_empty">没有匹配的应用</string>
+    <string name="ak_search_clear">清除</string>
+    <string name="ak_current">当前选择</string>
+    <string name="nav_back">返回</string>
     <string name="ak_custom_app_unset">请先选择要打开的应用</string>
     <string name="ak_custom_app_missing">所选应用不可用，请重新选择</string>
     <string name="ak_custom_app_none">尚未选择应用</string>
@@ -60,6 +66,7 @@
     <string name="theme_system">跟随系统</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
+    <string name="settings_section_background">后台</string>
     <string name="settings_hide_recents_title">隐藏后台</string>
     <string name="settings_hide_recents_desc">从系统多任务界面隐藏本应用卡片，降低被划掉的风险</string>
     <string name="permission_battery">忽略电池优化</string>

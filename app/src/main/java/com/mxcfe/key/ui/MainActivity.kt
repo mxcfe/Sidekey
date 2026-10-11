@@ -7,33 +7,40 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material.icons.outlined.BatteryFull
+import androidx.compose.material.icons.outlined.PowerSettingsNew
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Vibration
+import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material.icons.outlined.VpnKey
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -48,7 +55,9 @@ import rikka.shizuku.Shizuku
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        applyWindowBackground(this)
         setContent {
             val prefs = remember { Prefs(this) }
             SideKeyTheme(prefs.themeMode()) {
@@ -153,73 +162,98 @@ private fun MainScreen(
     val monitor by ActionKeyService.state.collectAsStateWithLifecycle()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.surface,
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tab == 0,
-                    onClick = { tab = 0 },
-                    icon = { Icon(Icons.Default.VpnKey, contentDescription = null) },
-                    label = { Text(context.getString(R.string.nav_action_key)) },
-                )
-                NavigationBarItem(
-                    selected = tab == 1,
-                    onClick = { tab = 1 },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    label = { Text(context.getString(R.string.nav_settings)) },
-                )
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    tonalElevation = 0.dp,
+                ) {
+                    NavItem(
+                        selected = tab == 0,
+                        label = stringResource(R.string.nav_action_key),
+                        icon = if (tab == 0) Icons.Filled.VpnKey else Icons.Outlined.VpnKey,
+                        onClick = { tab = 0 },
+                    )
+                    NavItem(
+                        selected = tab == 1,
+                        label = stringResource(R.string.nav_settings),
+                        icon = if (tab == 1) Icons.Filled.Settings else Icons.Outlined.Settings,
+                        onClick = { tab = 1 },
+                    )
+                }
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (tab == 0) {
-                ActionKeyPage(
-                    enabled = enabled,
-                    vibrate = vibrate,
-                    shizuku = shizuku,
-                    shizukuAlive = shizukuAlive,
-                    battery = battery,
-                    subtitle = subtitle,
-                    monitor = monitorText(context, monitor, enabled),
-                    onEnabled = { on ->
-                        ActionKeyService.setEnabled(context, on)
-                        tick++
-                    },
-                    onVibrate = { on ->
-                        prefs.setVibrate(on)
-                        tick++
-                    },
-                    onPickAction = onPickAction,
-                    onRequestShizuku = onRequestShizuku,
-                    onRequestBattery = onRequestBattery,
-                )
-            } else {
-                SettingsPage(
-                    theme = prefs.themeMode(),
-                    hide = prefs.hideFromRecents(),
-                    shizuku = shizuku,
-                    shizukuAlive = shizukuAlive,
-                    battery = battery,
-                    onTheme = onTheme,
-                    onHide = { value ->
-                        onHideRecents(value)
-                        tick++
-                    },
-                    onRequestShizuku = onRequestShizuku,
-                    onRequestBattery = onRequestBattery,
-                )
-            }
+        if (tab == 0) {
+            ActionKeyPage(
+                modifier = Modifier.padding(padding),
+                enabled = enabled,
+                vibrate = vibrate,
+                shizuku = shizuku,
+                shizukuAlive = shizukuAlive,
+                battery = battery,
+                subtitle = subtitle,
+                monitor = monitorText(context, monitor, enabled),
+                monitorState = monitor,
+                onEnabled = { on ->
+                    ActionKeyService.setEnabled(context, on)
+                    tick++
+                },
+                onVibrate = { on ->
+                    prefs.setVibrate(on)
+                    tick++
+                },
+                onPickAction = onPickAction,
+                onRequestShizuku = onRequestShizuku,
+                onRequestBattery = onRequestBattery,
+            )
+        } else {
+            SettingsPage(
+                modifier = Modifier.padding(padding),
+                theme = prefs.themeMode(),
+                hide = prefs.hideFromRecents(),
+                shizuku = shizuku,
+                shizukuAlive = shizukuAlive,
+                battery = battery,
+                onTheme = onTheme,
+                onHide = { value ->
+                    onHideRecents(value)
+                    tick++
+                },
+                onRequestShizuku = onRequestShizuku,
+                onRequestBattery = onRequestBattery,
+            )
         }
     }
 }
 
 @Composable
+private fun RowScope.NavItem(
+    selected: Boolean,
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+) {
+    NavigationBarItem(
+        selected = selected,
+        onClick = onClick,
+        icon = { Icon(icon, contentDescription = null) },
+        label = { Text(label) },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            selectedTextColor = MaterialTheme.colorScheme.primary,
+            indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    )
+}
+
+@Composable
 private fun ActionKeyPage(
+    modifier: Modifier,
     enabled: Boolean,
     vibrate: Boolean,
     shizuku: Boolean,
@@ -227,56 +261,56 @@ private fun ActionKeyPage(
     battery: Boolean,
     subtitle: String,
     monitor: String,
+    monitorState: ActionKeyService.MonitorState,
     onEnabled: (Boolean) -> Unit,
     onVibrate: (Boolean) -> Unit,
     onPickAction: () -> Unit,
     onRequestShizuku: () -> Unit,
     onRequestBattery: () -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Text(context.getString(R.string.nav_action_key), style = MaterialTheme.typography.headlineSmall)
-    SwitchRow(
-        title = context.getString(R.string.ak_enable_title),
-        subtitle = context.getString(R.string.ak_enable_desc),
-        checked = enabled,
-        onChecked = onEnabled,
-    )
-    Text(monitor, style = MaterialTheme.typography.bodySmall)
-    PermissionCard(
-        shizuku = shizuku,
-        shizukuAlive = shizukuAlive,
-        battery = battery,
-        onRequestShizuku = onRequestShizuku,
-        onRequestBattery = onRequestBattery,
-    )
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(context.getString(R.string.ak_hw_single), style = MaterialTheme.typography.titleMedium)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onPickAction)
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column {
-                    Text(context.getString(R.string.ak_ai_short))
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall)
-                }
-            }
+    PageColumn(modifier) {
+        PageHeader(title = stringResource(R.string.nav_action_key)) {
+            StatusLine(text = monitor, color = monitorColor(monitorState, enabled))
         }
+        Section(title = stringResource(R.string.ak_section_key)) {
+            PreferenceRow(
+                title = stringResource(R.string.ak_enable_title),
+                subtitle = stringResource(R.string.ak_enable_desc),
+                icon = Icons.Outlined.PowerSettingsNew,
+                checked = enabled,
+                onCheckedChange = onEnabled,
+            )
+            RowDivider(start = IconDividerInset)
+            PreferenceRow(
+                title = stringResource(R.string.ak_vibrate_title),
+                subtitle = stringResource(R.string.ak_vibrate_desc),
+                icon = Icons.Outlined.Vibration,
+                checked = vibrate,
+                onCheckedChange = onVibrate,
+            )
+        }
+        Section(title = stringResource(R.string.ak_hw_single)) {
+            PreferenceRow(
+                title = stringResource(R.string.ak_ai_short),
+                subtitle = subtitle,
+                icon = Icons.Outlined.TouchApp,
+                onClick = onPickAction,
+                showChevron = true,
+            )
+        }
+        PermissionSection(
+            shizuku = shizuku,
+            shizukuAlive = shizukuAlive,
+            battery = battery,
+            onRequestShizuku = onRequestShizuku,
+            onRequestBattery = onRequestBattery,
+        )
     }
-    SwitchRow(
-        title = context.getString(R.string.ak_vibrate_title),
-        subtitle = context.getString(R.string.ak_vibrate_desc),
-        checked = vibrate,
-        onChecked = onVibrate,
-    )
 }
 
 @Composable
 private fun SettingsPage(
+    modifier: Modifier,
     theme: String,
     hide: Boolean,
     shizuku: Boolean,
@@ -287,101 +321,112 @@ private fun SettingsPage(
     onRequestShizuku: () -> Unit,
     onRequestBattery: () -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Text(context.getString(R.string.settings_title), style = MaterialTheme.typography.headlineSmall)
-    Text(context.getString(R.string.settings_subtitle), style = MaterialTheme.typography.bodySmall)
-    Text(context.getString(R.string.theme_title), style = MaterialTheme.typography.titleMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ThemeChip(context.getString(R.string.theme_system), theme == Prefs.THEME_SYSTEM) {
-            onTheme(Prefs.THEME_SYSTEM)
+    PageColumn(modifier) {
+        PageHeader(title = stringResource(R.string.settings_title)) {
+            Text(
+                text = stringResource(R.string.settings_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        ThemeChip(context.getString(R.string.theme_light), theme == Prefs.THEME_LIGHT) {
-            onTheme(Prefs.THEME_LIGHT)
+        Section(title = stringResource(R.string.theme_title)) {
+            SegmentedChoice(
+                options = listOf(
+                    SegmentOption(Prefs.THEME_SYSTEM, stringResource(R.string.theme_system)),
+                    SegmentOption(Prefs.THEME_LIGHT, stringResource(R.string.theme_light)),
+                    SegmentOption(Prefs.THEME_DARK, stringResource(R.string.theme_dark)),
+                ),
+                selected = theme,
+                onSelect = onTheme,
+                modifier = Modifier.padding(12.dp),
+            )
         }
-        ThemeChip(context.getString(R.string.theme_dark), theme == Prefs.THEME_DARK) {
-            onTheme(Prefs.THEME_DARK)
+        Section(title = stringResource(R.string.settings_section_background)) {
+            PreferenceRow(
+                title = stringResource(R.string.settings_hide_recents_title),
+                subtitle = stringResource(R.string.settings_hide_recents_desc),
+                icon = Icons.Outlined.VisibilityOff,
+                checked = hide,
+                onCheckedChange = onHide,
+            )
         }
+        PermissionSection(
+            shizuku = shizuku,
+            shizukuAlive = shizukuAlive,
+            battery = battery,
+            onRequestShizuku = onRequestShizuku,
+            onRequestBattery = onRequestBattery,
+        )
     }
-    SwitchRow(
-        title = context.getString(R.string.settings_hide_recents_title),
-        subtitle = context.getString(R.string.settings_hide_recents_desc),
-        checked = hide,
-        onChecked = onHide,
-    )
-    PermissionCard(
-        shizuku = shizuku,
-        shizukuAlive = shizukuAlive,
-        battery = battery,
-        onRequestShizuku = onRequestShizuku,
-        onRequestBattery = onRequestBattery,
-    )
 }
 
 @Composable
-private fun PermissionCard(
+private fun PermissionSection(
     shizuku: Boolean,
     shizukuAlive: Boolean,
     battery: Boolean,
     onRequestShizuku: () -> Unit,
     onRequestBattery: () -> Unit,
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                context.getString(R.string.ak_privilege_title),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                context.getString(R.string.ak_privilege_desc),
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Text(shizukuStatus(context, shizuku, shizukuAlive))
-            if (!shizuku) {
-                TextButton(onClick = onRequestShizuku) {
-                    Text(context.getString(R.string.settings_shizuku_auth))
-                }
-            }
-            Text(
-                if (battery) {
-                    context.getString(R.string.permission_summary_ok)
-                } else {
-                    context.getString(R.string.permission_battery)
-                },
-            )
-            if (!battery) {
-                TextButton(onClick = onRequestBattery) {
-                    Text(context.getString(R.string.permission_battery))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SwitchRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onChecked: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+    val readyIcon = MaterialTheme.colorScheme.primaryContainer
+    val readyTint = MaterialTheme.colorScheme.onPrimaryContainer
+    val pendingIcon = MaterialTheme.colorScheme.errorContainer
+    val pendingTint = MaterialTheme.colorScheme.onErrorContainer
+    Section(
+        title = stringResource(R.string.ak_privilege_title),
+        description = stringResource(R.string.ak_privilege_desc),
     ) {
-        Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(title)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
-        }
-        Switch(checked = checked, onCheckedChange = onChecked)
+        PreferenceRow(
+            title = stringResource(R.string.permission_shizuku),
+            subtitle = shizukuSubtitle(shizuku, shizukuAlive),
+            icon = Icons.Outlined.AdminPanelSettings,
+            iconBackground = if (shizuku) readyIcon else pendingIcon,
+            iconTint = if (shizuku) readyTint else pendingTint,
+            onClick = if (shizuku) null else onRequestShizuku,
+            showChevron = !shizuku,
+            trailing = if (shizuku) {
+                { CheckMark() }
+            } else {
+                null
+            },
+        )
+        RowDivider(start = IconDividerInset)
+        PreferenceRow(
+            title = stringResource(R.string.permission_battery),
+            subtitle = if (battery) stringResource(R.string.permission_summary_ok) else null,
+            icon = if (battery) Icons.Outlined.BatteryFull else Icons.Outlined.BatteryAlert,
+            iconBackground = if (battery) readyIcon else pendingIcon,
+            iconTint = if (battery) readyTint else pendingTint,
+            onClick = if (battery) null else onRequestBattery,
+            showChevron = !battery,
+            trailing = if (battery) {
+                { CheckMark() }
+            } else {
+                null
+            },
+        )
     }
 }
 
 @Composable
-private fun ThemeChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Text(if (selected) "● $label" else label)
+private fun shizukuSubtitle(granted: Boolean, alive: Boolean): String {
+    return when {
+        granted -> stringResource(R.string.settings_shizuku_ok)
+        alive -> stringResource(R.string.settings_shizuku_need_auth)
+        else -> stringResource(R.string.settings_shizuku_not_running)
+    }
+}
+
+@Composable
+private fun monitorColor(state: ActionKeyService.MonitorState, enabled: Boolean): Color {
+    if (!enabled) return MaterialTheme.colorScheme.outline
+    return when (state) {
+        ActionKeyService.MonitorState.LISTENING -> MaterialTheme.colorScheme.secondary
+        ActionKeyService.MonitorState.RETRYING -> MaterialTheme.colorScheme.error
+        ActionKeyService.MonitorState.WAITING -> MaterialTheme.colorScheme.tertiary
+        ActionKeyService.MonitorState.STARTING,
+        ActionKeyService.MonitorState.STOPPED,
+        -> MaterialTheme.colorScheme.primary
     }
 }
 
@@ -393,14 +438,6 @@ private fun shortSubtitle(context: android.content.Context, prefs: Prefs): Strin
         return context.getString(R.string.ak_open_named, label)
     }
     return context.getString(action.title)
-}
-
-private fun shizukuStatus(context: android.content.Context, granted: Boolean, alive: Boolean): String {
-    return when {
-        granted -> context.getString(R.string.settings_shizuku_ok)
-        alive -> context.getString(R.string.settings_shizuku_need_auth)
-        else -> context.getString(R.string.settings_shizuku_not_running)
-    }
 }
 
 private fun monitorText(
