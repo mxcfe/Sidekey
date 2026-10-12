@@ -9,7 +9,7 @@ import android.util.Log
 
 object Watchdog {
     const val ACTION = "com.mxcfe.key.action.WATCHDOG"
-    private const val INTERVAL_MS = 180_000L
+    private const val INTERVAL_MS = 600_000L
 
     fun schedule(context: Context) {
         val alarm = context.getSystemService(AlarmManager::class.java)

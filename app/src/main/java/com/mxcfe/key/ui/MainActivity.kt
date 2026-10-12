@@ -12,18 +12,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.VpnKey
-import androidx.compose.material.icons.outlined.AdminPanelSettings
-import androidx.compose.material.icons.outlined.AdsClick
-import androidx.compose.material.icons.outlined.BatteryAlert
-import androidx.compose.material.icons.outlined.BatteryFull
-import androidx.compose.material.icons.outlined.PowerSettingsNew
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Timer
-import androidx.compose.material.icons.outlined.Vibration
-import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material.icons.outlined.VpnKey
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -179,7 +178,7 @@ private fun MainScreen(
                     NavItem(
                         selected = tab == 0,
                         label = stringResource(R.string.nav_action_key),
-                        icon = if (tab == 0) Icons.Filled.VpnKey else Icons.Outlined.VpnKey,
+                        icon = if (tab == 0) Icons.Filled.Home else Icons.Outlined.Home,
                         onClick = { tab = 0 },
                     )
                     NavItem(
@@ -284,7 +283,7 @@ private fun ActionKeyPage(
             PreferenceRow(
                 title = stringResource(R.string.ak_enable_title),
                 subtitle = stringResource(R.string.ak_enable_desc),
-                icon = Icons.Outlined.PowerSettingsNew,
+                icon = Icons.Outlined.Star,
                 checked = enabled,
                 onCheckedChange = onEnabled,
             )
@@ -292,7 +291,7 @@ private fun ActionKeyPage(
             PreferenceRow(
                 title = stringResource(R.string.ak_vibrate_title),
                 subtitle = stringResource(R.string.ak_vibrate_desc),
-                icon = Icons.Outlined.Vibration,
+                icon = Icons.Outlined.Notifications,
                 checked = vibrate,
                 onCheckedChange = onVibrate,
             )
@@ -301,7 +300,7 @@ private fun ActionKeyPage(
             PreferenceRow(
                 title = stringResource(R.string.ak_ai_long),
                 subtitle = longSubtitle,
-                icon = Icons.Outlined.Timer,
+                icon = Icons.Outlined.Info,
                 onClick = { onPickAction(KeyGesture.LONG) },
                 showChevron = true,
             )
@@ -309,7 +308,7 @@ private fun ActionKeyPage(
             PreferenceRow(
                 title = stringResource(R.string.ak_ai_double),
                 subtitle = doubleSubtitle,
-                icon = Icons.Outlined.AdsClick,
+                icon = Icons.Filled.Check,
                 onClick = { onPickAction(KeyGesture.DOUBLE) },
                 showChevron = true,
             )
@@ -361,7 +360,7 @@ private fun SettingsPage(
             PreferenceRow(
                 title = stringResource(R.string.settings_hide_recents_title),
                 subtitle = stringResource(R.string.settings_hide_recents_desc),
-                icon = Icons.Outlined.VisibilityOff,
+                icon = Icons.Outlined.Lock,
                 checked = hide,
                 onCheckedChange = onHide,
             )
@@ -395,7 +394,7 @@ private fun PermissionSection(
         PreferenceRow(
             title = stringResource(R.string.permission_shizuku),
             subtitle = shizukuSubtitle(shizuku, shizukuAlive),
-            icon = Icons.Outlined.AdminPanelSettings,
+            icon = Icons.Outlined.Settings,
             iconBackground = if (shizuku) readyIcon else pendingIcon,
             iconTint = if (shizuku) readyTint else pendingTint,
             onClick = if (shizuku) null else onRequestShizuku,
@@ -410,7 +409,7 @@ private fun PermissionSection(
         PreferenceRow(
             title = stringResource(R.string.permission_battery),
             subtitle = if (battery) stringResource(R.string.permission_summary_ok) else null,
-            icon = if (battery) Icons.Outlined.BatteryFull else Icons.Outlined.BatteryAlert,
+            icon = if (battery) Icons.Filled.Star else Icons.Outlined.Warning,
             iconBackground = if (battery) readyIcon else pendingIcon,
             iconTint = if (battery) readyTint else pendingTint,
             onClick = if (battery) null else onRequestBattery,

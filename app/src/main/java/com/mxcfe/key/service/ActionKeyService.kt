@@ -105,7 +105,6 @@ class ActionKeyService : Service() {
                 continue
             }
             state.value = MonitorState.STARTING
-            Log.i(TAG, "start logcat type=single useRoot=false cmd=$LOGCAT")
             try {
                 val started = ShizukuShell.start(LOGCAT)
                 process = started
@@ -181,7 +180,9 @@ class ActionKeyService : Service() {
 
         private const val NOTIFICATION_ID = 1
         private const val CHANNEL_ID = "action_key"
-        private const val LOGCAT = "logcat -T 1 -v brief *:V"
+        // 只拉 AI 键相关日志，避免 *:V 全量扫日志拖垮耗电与 CPU。
+        private const val LOGCAT =
+            "logcat -T 1 -v brief | grep --line-buffered -iE 'action_button|ai_key|handleActionButtonClick|stkeylog|KeyLog_Oplus|pantanal\\.intent\\.business\\.app\\.system\\.action_key|ActionButtonKeyUtils'"
         private const val TAG = "ActionKeyLogcat"
     }
 }
