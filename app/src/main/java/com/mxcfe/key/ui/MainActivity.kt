@@ -457,6 +457,11 @@ private fun actionSubtitle(
         if (label.isBlank()) return context.getString(R.string.ak_custom_app_none)
         return context.getString(R.string.ak_open_named, label)
     }
+    if (action == ActionId.OPEN_URL) {
+        val url = prefs.pageUrl(gesture)
+        if (url.isBlank()) return context.getString(R.string.ak_url_none)
+        return context.getString(R.string.ak_open_url_named, url)
+    }
     return context.getString(action.title)
 }
 

@@ -33,6 +33,13 @@ class ActionPickerActivity : ComponentActivity() {
         finish()
     }
 
+    private val pickUrl = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        val url = result.data?.getStringExtra(UrlPickerActivity.EXTRA_URL) ?: return@registerForActivityResult
+        Prefs(this).setPageUrl(gesture, url)
+        finish()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
@@ -46,11 +53,18 @@ class ActionPickerActivity : ComponentActivity() {
                     selected = prefs.actionId(current),
                     onBack = { finish() },
                     onPick = { action ->
-                        if (action == ActionId.CUSTOM_APP) {
-                            pickApp.launch(Intent(this, AppPickerActivity::class.java))
-                        } else {
-                            prefs.setAction(current, action.id)
-                            finish()
+                        when (action) {
+                            ActionId.CUSTOM_APP ->
+                                pickApp.launch(Intent(this, AppPickerActivity::class.java))
+                            ActionId.OPEN_URL ->
+                                pickUrl.launch(
+                                    Intent(this, UrlPickerActivity::class.java)
+                                        .putExtra(UrlPickerActivity.EXTRA_URL, prefs.pageUrl(current)),
+                                )
+                            else -> {
+                                prefs.setAction(current, action.id)
+                                finish()
+                            }
                         }
                     },
                 )

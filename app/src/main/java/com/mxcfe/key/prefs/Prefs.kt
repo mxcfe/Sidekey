@@ -45,6 +45,32 @@ class Prefs(context: Context) {
             .apply()
     }
 
+    fun pageUrl(gesture: KeyGesture): String {
+        return raw.getString(urlKey(gesture), "") ?: ""
+    }
+
+    fun setPageUrl(gesture: KeyGesture, url: String) {
+        raw.edit()
+            .putString(actionKey(gesture), ActionId.OPEN_URL.id)
+            .putString(urlKey(gesture), url)
+            .apply()
+    }
+
+    fun setAppShortcut(
+        gesture: KeyGesture,
+        packageName: String,
+        appLabel: String,
+        shortcutId: String,
+        shortcutLabel: String,
+    ) {
+        raw.edit()
+            .putString(pkgKey(gesture), packageName)
+            .putString(labelKey(gesture), appLabel)
+            .putString(shortcutIdKey(gesture), shortcutId)
+            .putString(shortcutLabelKey(gesture), shortcutLabel)
+            .apply()
+    }
+
     fun themeMode(): String {
         val value = raw.getString(KEY_THEME, THEME_SYSTEM)
         return if (value == THEME_LIGHT || value == THEME_DARK) value else THEME_SYSTEM
@@ -71,6 +97,12 @@ class Prefs(context: Context) {
         const val KEY_LABEL_LONG = "custom_app_label_long"
         const val KEY_PKG_DOUBLE = "custom_app_pkg_double"
         const val KEY_LABEL_DOUBLE = "custom_app_label_double"
+        const val KEY_URL_LONG = "page_url_long"
+        const val KEY_URL_DOUBLE = "page_url_double"
+        const val KEY_SHORTCUT_ID_LONG = "app_shortcut_id_long"
+        const val KEY_SHORTCUT_ID_DOUBLE = "app_shortcut_id_double"
+        const val KEY_SHORTCUT_LABEL_LONG = "app_shortcut_label_long"
+        const val KEY_SHORTCUT_LABEL_DOUBLE = "app_shortcut_label_double"
 
         private fun actionKey(gesture: KeyGesture): String = when (gesture) {
             KeyGesture.LONG -> KEY_LONG
@@ -85,6 +117,21 @@ class Prefs(context: Context) {
         private fun labelKey(gesture: KeyGesture): String = when (gesture) {
             KeyGesture.LONG -> KEY_LABEL_LONG
             KeyGesture.DOUBLE -> KEY_LABEL_DOUBLE
+        }
+
+        private fun urlKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_URL_LONG
+            KeyGesture.DOUBLE -> KEY_URL_DOUBLE
+        }
+
+        private fun shortcutIdKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_SHORTCUT_ID_LONG
+            KeyGesture.DOUBLE -> KEY_SHORTCUT_ID_DOUBLE
+        }
+
+        private fun shortcutLabelKey(gesture: KeyGesture): String = when (gesture) {
+            KeyGesture.LONG -> KEY_SHORTCUT_LABEL_LONG
+            KeyGesture.DOUBLE -> KEY_SHORTCUT_LABEL_DOUBLE
         }
         const val KEY_THEME = "theme_mode"
         const val KEY_HIDE = "hide_from_recents"

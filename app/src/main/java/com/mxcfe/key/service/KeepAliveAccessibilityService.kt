@@ -7,6 +7,7 @@ import android.graphics.Path
 import android.view.accessibility.AccessibilityEvent
 import com.mxcfe.key.prefs.Prefs
 import com.mxcfe.key.privilege.ShizukuAccess
+import com.mxcfe.key.ui.Feedback
 
 class KeepAliveAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
@@ -15,6 +16,7 @@ class KeepAliveAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         if (instance === this) instance = null
+        Feedback.dismiss()
         super.onDestroy()
     }
 
