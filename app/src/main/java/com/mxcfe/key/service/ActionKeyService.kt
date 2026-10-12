@@ -16,6 +16,7 @@ import android.os.VibratorManager
 import android.util.Log
 import com.mxcfe.key.R
 import com.mxcfe.key.action.ActionDispatcher
+import com.mxcfe.key.action.ActionId
 import com.mxcfe.key.action.KeyGesture
 import com.mxcfe.key.detect.AiKeyDetector
 import com.mxcfe.key.detect.HandlerDelayQueue
@@ -78,7 +79,13 @@ class ActionKeyService : Service() {
 
     private fun onGesture(gesture: KeyGesture, reason: String) {
         Log.i(TAG, "detected ${gesture.id} :: $reason")
-        if (Prefs(this).vibrate()) {
+        val prefs = Prefs(this)
+        val action = ActionId.fromId(prefs.actionId(gesture))
+        // 开关类动作改在结果提示时震动，开启和关闭用不同节奏。
+        val deferVibrate = action == ActionId.FLASHLIGHT ||
+            action == ActionId.BLUETOOTH ||
+            action == ActionId.RING_MODE
+        if (prefs.vibrate() && !deferVibrate) {
             try {
                 val vibrator = getSystemService(VibratorManager::class.java).defaultVibrator
                 vibrator.vibrate(VibrationEffect.createOneShot(24, VibrationEffect.DEFAULT_AMPLITUDE))

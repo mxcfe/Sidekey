@@ -9,6 +9,8 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.VibratorManager
 import android.provider.Settings
 import android.util.Log
 import android.view.Gravity
@@ -20,6 +22,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import com.mxcfe.key.R
+import com.mxcfe.key.prefs.Prefs
 import com.mxcfe.key.privilege.ShizukuAccess
 import com.mxcfe.key.privilege.ShizukuShell
 import com.mxcfe.key.service.KeepAliveAccessibilityService
@@ -66,6 +69,7 @@ object Feedback {
         @DrawableRes icon: Int = 0,
     ) {
         val app = context.applicationContext
+        vibrate(app, tone, icon)
         val duration = if (long) 3500L else 2000L
         if (overlayReady || Settings.canDrawOverlays(app)) {
             val wm = app.getSystemService(WindowManager::class.java)
@@ -98,6 +102,28 @@ object Feedback {
             dismissLocked()
         } else {
             main.post { dismissLocked() }
+        }
+    }
+
+    private fun vibrate(context: Context, tone: Tone, @DrawableRes icon: Int) {
+        if (!Prefs(context).vibrate()) return
+        try {
+            val vibrator = context.getSystemService(VibratorManager::class.java).defaultVibrator
+            if (!vibrator.hasVibrator()) return
+            val effect = when (tone) {
+                // 开启：一下稍长的确认震
+                Tone.ON -> VibrationEffect.createOneShot(48, VibrationEffect.DEFAULT_AMPLITUDE)
+                // 关闭：两下短震
+                Tone.OFF -> VibrationEffect.createWaveform(longArrayOf(0, 28, 70, 28), -1)
+                // 中性状态（如振动模式）：短-长；普通错误提示不额外震
+                Tone.NEUTRAL -> {
+                    if (icon == 0) return
+                    VibrationEffect.createWaveform(longArrayOf(0, 22, 45, 55), -1)
+                }
+            }
+            vibrator.vibrate(effect)
+        } catch (error: Throwable) {
+            Log.w(TAG, "vibrate failed", error)
         }
     }
 
