@@ -5,7 +5,7 @@
 -dontwarn moe.shizuku.**
 
 # Keep enum id strings used in SharedPreferences.
--keepclassmembers enum com.mxcfe.key.action.** {
+-keepclassmembers enum com.mxcfe.sidekey.action.** {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }

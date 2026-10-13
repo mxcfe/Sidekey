@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SideKey"
+rootProject.name = "Sidekey"
 include(":app")

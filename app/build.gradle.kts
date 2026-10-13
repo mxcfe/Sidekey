@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.mxcfe.key"
+    namespace = "com.mxcfe.sidekey"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.mxcfe.key"
+        applicationId = "com.mxcfe.sidekey"
         minSdk = 33
         targetSdk = 36
         versionCode = 1

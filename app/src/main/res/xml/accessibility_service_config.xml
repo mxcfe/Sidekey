@@ -8,4 +8,4 @@
     android:canRetrieveWindowContent="false"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="200"
-    android:settingsActivity="com.mxcfe.key.ui.MainActivity" />
+    android:settingsActivity="com.mxcfe.sidekey.ui.MainActivity" />
